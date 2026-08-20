@@ -54,22 +54,22 @@ export default function DecisionReceiptPage() {
   };
 
   return (
-    <div className="space-y-6 pb-12 animate-fade-in">
+    <div className="space-y-6 pb-12 animate-fade-in transition-colors duration-200">
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-2xl font-bold text-white font-heading tracking-tight flex items-center space-x-2">
-            <Receipt className="w-6 h-6 text-indigo-400" />
+          <h1 className="text-2xl font-bold text-slate-900 dark:text-white font-heading tracking-tight flex items-center space-x-2">
+            <Receipt className="w-6 h-6 text-indigo-600 dark:text-indigo-400" />
             <span>Explainable Recovery Receipt™</span>
           </h1>
-          <p className="text-xs text-gray-400 mt-1">Audit-ready evidence record for every recovery decision</p>
+          <p className="text-xs text-slate-500 dark:text-gray-400 mt-1 font-mono">Audit-ready evidence record for every recovery decision</p>
         </div>
 
         <div className="flex items-center space-x-3">
-          <label className="text-xs text-gray-400 font-mono">Select Case:</label>
+          <label className="text-xs text-slate-500 dark:text-gray-400 font-mono">Select Case:</label>
           <select
             value={selectedCaseId}
             onChange={(e) => setSelectedCaseId(e.target.value)}
-            className="bg-gray-900 border border-gray-700 rounded-xl px-3.5 py-2 text-xs font-mono font-semibold text-white focus:outline-none"
+            className="bg-white dark:bg-gray-900 border border-slate-300 dark:border-gray-700 rounded-xl px-3.5 py-2 text-xs font-mono font-semibold text-slate-800 dark:text-white focus:outline-none shadow-sm"
           >
             {allCases.map((c) => (
               <option key={c.id} value={c.id}>
@@ -81,12 +81,12 @@ export default function DecisionReceiptPage() {
       </div>
 
       {loading || !currentCase ? (
-        <div className="p-12 text-center text-gray-400 space-y-3 glass-panel rounded-2xl">
-          <RefreshCw className="w-8 h-8 text-indigo-400 animate-spin mx-auto" />
+        <div className="p-12 text-center text-slate-500 dark:text-gray-400 space-y-3 surface-level-2 rounded-2xl">
+          <RefreshCw className="w-8 h-8 text-indigo-600 dark:text-indigo-400 animate-spin mx-auto" />
           <p className="text-xs font-mono">Retrieving Decision Receipt Record...</p>
         </div>
       ) : (
-        <div className="glass-panel p-8 rounded-3xl border border-indigo-500/30 space-y-6 shadow-2xl">
+        <div className="surface-level-2 p-8 rounded-3xl border border-indigo-500/30 space-y-6 shadow-xl">
           <DecisionReceiptModal caseData={currentCase} onClose={handleClose} />
         </div>
       )}
