@@ -6,7 +6,19 @@
 
 :root {
   font-family: 'Inter', sans-serif;
+  color-scheme: light;
+  --bg-page: #F8FAFC;
+  --text-main: #0F172A;
+  --text-muted: #475569;
+  --border-subtle: #E2E8F0;
+}
+
+.dark {
   color-scheme: dark;
+  --bg-page: #080D18;
+  --text-main: #F8FAFC;
+  --text-muted: #94A3B8;
+  --border-subtle: #1E293B;
 }
 
 h1, h2, h3, h4, h5, h6, .font-heading {
@@ -18,32 +30,46 @@ code, pre, .font-mono {
 }
 
 body {
-  background-color: #080D18;
+  background-color: var(--bg-page);
+  color: var(--text-main);
+  min-height: 100vh;
+  overflow-x: hidden;
+  transition: background-color 0.25s ease, color 0.25s ease;
+}
+
+/* Light Mode Radial Ambient Glows */
+body:not(.dark) {
+  background-image: 
+    radial-gradient(circle at 50% 0%, rgba(99, 102, 241, 0.05) 0%, transparent 60%),
+    radial-gradient(circle at 100% 50%, rgba(6, 182, 212, 0.04) 0%, transparent 40%);
+  background-attachment: fixed;
+}
+
+/* Dark Mode Radial Ambient Glows */
+.dark body, body.dark {
   background-image: 
     radial-gradient(circle at 50% 0%, rgba(99, 102, 241, 0.12) 0%, transparent 60%),
     radial-gradient(circle at 100% 50%, rgba(6, 182, 212, 0.06) 0%, transparent 40%),
     radial-gradient(circle at 0% 80%, rgba(139, 92, 246, 0.05) 0%, transparent 40%);
   background-attachment: fixed;
-  color: #F3F4F6;
-  min-height: 100vh;
-  overflow-x: hidden;
-}
-
-/* Subtle Grid Background Pattern overlay */
-.bg-grid-pattern {
-  background-size: 32px 32px;
-  background-image: linear-gradient(to right, rgba(255, 255, 255, 0.02) 1px, transparent 1px),
-                    linear-gradient(to bottom, rgba(255, 255, 255, 0.02) 1px, transparent 1px);
 }
 
 /* Surface Hierarchy Elevation Levels */
-/* Level 1: Background (#080D18) */
+/* Level 1: Background */
 .surface-level-1 {
+  background: #FFFFFF;
+}
+.dark .surface-level-1 {
   background: #080D18;
 }
 
 /* Level 2: Standard Content Panels */
 .surface-level-2 {
+  background: #FFFFFF;
+  border: 1px solid #E2E8F0;
+  box-shadow: 0 4px 16px rgba(15, 23, 42, 0.04);
+}
+.dark .surface-level-2 {
   background: rgba(17, 24, 39, 0.75);
   backdrop-filter: blur(16px);
   -webkit-backdrop-filter: blur(16px);
@@ -53,6 +79,11 @@ body {
 
 /* Level 3: Active Intelligence / Action Highlight Panels */
 .surface-level-3 {
+  background: #F1F5F9;
+  border: 1px solid rgba(99, 102, 241, 0.4);
+  box-shadow: 0 8px 24px rgba(99, 102, 241, 0.08);
+}
+.dark .surface-level-3 {
   background: rgba(31, 41, 55, 0.85);
   backdrop-filter: blur(20px);
   -webkit-backdrop-filter: blur(20px);
@@ -62,19 +93,19 @@ body {
 
 /* Intelligence Accent Glows */
 .glow-indigo {
-  box-shadow: 0 0 30px -5px rgba(99, 102, 241, 0.3);
+  box-shadow: 0 0 25px -5px rgba(99, 102, 241, 0.25);
 }
 
 .glow-cyan {
-  box-shadow: 0 0 30px -5px rgba(6, 182, 212, 0.3);
+  box-shadow: 0 0 25px -5px rgba(6, 182, 212, 0.25);
 }
 
 .glow-emerald {
-  box-shadow: 0 0 30px -5px rgba(16, 185, 129, 0.3);
+  box-shadow: 0 0 25px -5px rgba(16, 185, 129, 0.25);
 }
 
 .glow-violet {
-  box-shadow: 0 0 30px -5px rgba(139, 92, 246, 0.3);
+  box-shadow: 0 0 25px -5px rgba(139, 92, 246, 0.25);
 }
 
 /* Custom Scrollbar */
@@ -84,15 +115,23 @@ body {
 }
 
 ::-webkit-scrollbar-track {
-  background: #080D18;
+  background: transparent;
 }
 
 ::-webkit-scrollbar-thumb {
-  background: #1F2937;
+  background: #CBD5E1;
   border-radius: 4px;
 }
 
+.dark ::-webkit-scrollbar-thumb {
+  background: #1F2937;
+}
+
 ::-webkit-scrollbar-thumb:hover {
+  background: #94A3B8;
+}
+
+.dark ::-webkit-scrollbar-thumb:hover {
   background: #374151;
 }
 

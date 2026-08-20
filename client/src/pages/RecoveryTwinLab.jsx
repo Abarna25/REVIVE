@@ -143,27 +143,27 @@ export default function RecoveryTwinLab() {
   };
 
   return (
-    <div className="space-y-8 pb-12 animate-fade-in">
+    <div className="space-y-8 pb-12 animate-fade-in transition-colors duration-200">
       {/* Title Header & Case Picker */}
       <div className="flex flex-wrap items-center justify-between gap-4">
         <div>
           <div className="flex items-center space-x-2">
-            <GitFork className="w-6 h-6 text-violet-400" />
-            <h1 className="text-2xl lg:text-3xl font-extrabold text-white font-heading tracking-tight">RECOVERY TWIN LAB</h1>
-            <span className="text-xs px-2.5 py-0.5 rounded-full font-bold bg-gradient-to-r from-violet-500 to-indigo-500 text-white shadow-sm font-mono">
+            <GitFork className="w-6 h-6 text-violet-600 dark:text-violet-400" />
+            <h1 className="text-2xl lg:text-3xl font-extrabold text-slate-900 dark:text-white font-heading tracking-tight">RECOVERY TWIN LAB</h1>
+            <span className="text-xs px-2.5 py-0.5 rounded-full font-bold bg-gradient-to-r from-violet-600 to-indigo-600 text-white shadow-sm font-mono">
               ✦ REVIVE SIGNATURE INNOVATION
             </span>
           </div>
-          <p className="text-xs text-gray-400 mt-1 font-mono">Simulate recovery futures before taking action.</p>
+          <p className="text-xs text-slate-500 dark:text-gray-400 mt-1 font-mono">Simulate recovery futures before taking action.</p>
         </div>
 
         {/* Case Selector */}
         <div className="flex items-center space-x-3">
-          <label className="text-xs text-gray-400 font-mono">Select Case:</label>
+          <label className="text-xs text-slate-500 dark:text-gray-400 font-mono">Select Case:</label>
           <select
             value={selectedCaseId}
             onChange={(e) => setSelectedCaseId(e.target.value)}
-            className="bg-gray-900 border border-violet-500/40 rounded-xl px-3.5 py-2 text-xs font-mono font-semibold text-white focus:outline-none focus:border-violet-500"
+            className="bg-white dark:bg-gray-900 border border-violet-300 dark:border-violet-500/40 rounded-xl px-3.5 py-2 text-xs font-mono font-semibold text-slate-800 dark:text-white focus:outline-none focus:border-violet-500 shadow-sm"
           >
             {allCases.map((c) => (
               <option key={c.id} value={c.id}>
@@ -176,10 +176,10 @@ export default function RecoveryTwinLab() {
 
       {actionNotice && (
         <div className={`p-4 rounded-xl text-xs font-semibold border animate-fade-in ${
-          actionNotice.type === 'success' ? 'bg-emerald-500/10 border-emerald-500/30 text-emerald-300' :
-          actionNotice.type === 'awaiting' ? 'bg-cyan-500/10 border-cyan-500/30 text-cyan-300' :
-          actionNotice.type === 'graceful_failure' ? 'bg-amber-500/10 border-amber-500/30 text-amber-300' :
-          'bg-rose-500/10 border-rose-500/30 text-rose-300'
+          actionNotice.type === 'success' ? 'bg-emerald-500/10 border-emerald-500/30 text-emerald-700 dark:text-emerald-300' :
+          actionNotice.type === 'awaiting' ? 'bg-cyan-500/10 border-cyan-500/30 text-cyan-700 dark:text-cyan-300' :
+          actionNotice.type === 'graceful_failure' ? 'bg-amber-500/10 border-amber-500/30 text-amber-700 dark:text-amber-300' :
+          'bg-rose-500/10 border-rose-500/30 text-rose-700 dark:text-rose-300'
         }`}>
           {actionNotice.text}
         </div>
@@ -189,10 +189,10 @@ export default function RecoveryTwinLab() {
       {currentCase && currentCase.status === 'AWAITING_PAYMENT_CONFIRMATION' && (
         <div className="surface-level-3 p-5 rounded-2xl border border-cyan-500/40 flex items-center justify-between glow-indigo animate-pulse">
           <div className="flex items-center space-x-3">
-            <Clock className="w-6 h-6 text-cyan-400" />
+            <Clock className="w-6 h-6 text-cyan-600 dark:text-cyan-400" />
             <div>
-              <h4 className="text-sm font-bold text-white font-heading">PAYMENT INTERVENTION INITIALIZED — AWAITING CONFIRMATION</h4>
-              <p className="text-xs text-cyan-200/80 font-mono mt-0.5">
+              <h4 className="text-sm font-bold text-slate-900 dark:text-white font-heading">PAYMENT INTERVENTION INITIALIZED — AWAITING CONFIRMATION</h4>
+              <p className="text-xs text-slate-600 dark:text-cyan-200/80 font-mono mt-0.5">
                 Financial Accuracy Principle: Payment link created. Revenue is NOT counted until payment confirmation is received.
               </p>
             </div>
@@ -201,7 +201,7 @@ export default function RecoveryTwinLab() {
           <button
             onClick={handleConfirmPayment}
             disabled={confirming}
-            className="flex items-center space-x-2 px-4 py-2 rounded-xl bg-gradient-to-r from-cyan-600 to-emerald-500 hover:opacity-90 text-white font-bold text-xs shadow-lg shadow-cyan-500/30 transition transform hover:scale-[1.02] shrink-0 font-mono"
+            className="flex items-center space-x-2 px-4 py-2 rounded-xl bg-gradient-to-r from-cyan-600 to-emerald-600 hover:opacity-90 text-white font-bold text-xs shadow-md shadow-cyan-500/20 transition transform hover:scale-[1.02] shrink-0 font-mono"
           >
             <CheckCircle2 className="w-4 h-4" />
             <span>{confirming ? 'Confirming Payment...' : 'Confirm Simulated Payment'}</span>
@@ -215,8 +215,8 @@ export default function RecoveryTwinLab() {
       )}
 
       {loading || !currentCase ? (
-        <div className="p-12 text-center text-gray-400 space-y-3 surface-level-2 rounded-2xl">
-          <RefreshCw className="w-8 h-8 text-violet-400 animate-spin mx-auto" />
+        <div className="p-12 text-center text-slate-500 dark:text-gray-400 space-y-3 surface-level-2 rounded-2xl">
+          <RefreshCw className="w-8 h-8 text-violet-600 dark:text-violet-400 animate-spin mx-auto" />
           <p className="text-xs font-mono">Initializing Recovery Digital Twin Sandbox...</p>
         </div>
       ) : (
@@ -229,12 +229,12 @@ export default function RecoveryTwinLab() {
           />
 
           {/* Execution Controls Bar */}
-          <div className="surface-level-2 p-5 rounded-2xl border border-gray-800 flex flex-wrap items-center justify-between gap-4">
+          <div className="surface-level-2 p-5 rounded-2xl border border-slate-200 dark:border-gray-800 flex flex-wrap items-center justify-between gap-4">
             <div className="flex items-center space-x-3">
               <button
                 onClick={handleSimulateTwin}
                 disabled={simulating}
-                className="flex items-center space-x-2 px-4 py-2 rounded-xl bg-gray-900 hover:bg-gray-800 text-cyan-400 font-semibold text-xs border border-cyan-500/30 transition disabled:opacity-50 font-mono"
+                className="flex items-center space-x-2 px-4 py-2 rounded-xl bg-slate-100 dark:bg-gray-900 hover:bg-slate-200 dark:hover:bg-gray-800 text-cyan-700 dark:text-cyan-400 font-semibold text-xs border border-slate-300 dark:border-cyan-500/30 transition disabled:opacity-50 font-mono"
               >
                 <RefreshCw className={`w-3.5 h-3.5 ${simulating ? 'animate-spin' : ''}`} />
                 <span>{simulating ? 'Simulating Pathways...' : 'Re-Run Multi-Path Simulation'}</span>
@@ -243,7 +243,7 @@ export default function RecoveryTwinLab() {
               <button
                 onClick={() => handleExecuteAction(false)}
                 disabled={executing || currentCase.status === 'RECOVERED'}
-                className="flex items-center space-x-2 px-4 py-2 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white font-semibold text-xs shadow-lg shadow-emerald-600/30 transition disabled:opacity-50 font-mono"
+                className="flex items-center space-x-2 px-4 py-2 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white font-semibold text-xs shadow-md shadow-emerald-600/20 transition disabled:opacity-50 font-mono"
               >
                 <Play className="w-3.5 h-3.5" />
                 <span>{executing ? 'Executing Action...' : 'EXECUTE INTERVENTION'}</span>
@@ -255,15 +255,15 @@ export default function RecoveryTwinLab() {
               <button
                 onClick={() => handleExecuteAction(true)}
                 disabled={executing}
-                className="flex items-center space-x-2 px-4 py-2 rounded-xl bg-amber-500/20 hover:bg-amber-500/30 text-amber-300 font-semibold text-xs border border-amber-500/40 transition font-mono"
+                className="flex items-center space-x-2 px-4 py-2 rounded-xl bg-amber-500/10 hover:bg-amber-500/20 dark:bg-amber-500/20 dark:hover:bg-amber-500/30 text-amber-700 dark:text-amber-300 font-semibold text-xs border border-amber-500/40 transition font-mono"
               >
-                <AlertTriangle className="w-3.5 h-3.5 text-amber-400" />
+                <AlertTriangle className="w-3.5 h-3.5 text-amber-500 dark:text-amber-400" />
                 <span>Simulate Graceful Failure Demo</span>
               </button>
 
               <button
                 onClick={() => setShowReceipt(true)}
-                className="flex items-center space-x-2 px-4 py-2 rounded-xl bg-indigo-600 hover:bg-indigo-500 text-white font-semibold text-xs shadow-lg shadow-indigo-600/30 transition font-mono"
+                className="flex items-center space-x-2 px-4 py-2 rounded-xl bg-indigo-600 hover:bg-indigo-500 text-white font-semibold text-xs shadow-md shadow-indigo-600/20 transition font-mono"
               >
                 <Receipt className="w-3.5 h-3.5" />
                 <span>View Decision Receipt</span>
@@ -271,7 +271,7 @@ export default function RecoveryTwinLab() {
 
               <button
                 onClick={handleStopRecovery}
-                className="p-2 rounded-xl bg-rose-500/10 hover:bg-rose-500/20 text-rose-400 border border-rose-500/30 transition"
+                className="p-2 rounded-xl bg-rose-500/10 hover:bg-rose-500/20 text-rose-600 dark:text-rose-400 border border-rose-500/30 transition"
                 title="Stop Intervention"
               >
                 <StopCircle className="w-4 h-4" />
