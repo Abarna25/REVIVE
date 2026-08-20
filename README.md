@@ -208,7 +208,3 @@ Open `http://localhost:5173` in your browser.
 Set `VITE_API_URL` on Vercel and `FRONTEND_URL` + `DATABASE_URL` on Render/Railway.
 
 ---
-
-## 📜 License
-
-MIT License • Built for Hackathon Excellence.
