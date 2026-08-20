@@ -1,10 +1,12 @@
 import React, { useState } from 'react';
-import { RefreshCw, ShieldAlert, Cpu, Sparkles } from 'lucide-react';
+import { useNavigate } from 'react-router-dom';
+import { RefreshCw, GitFork, ShieldCheck, Cpu } from 'lucide-react';
 import { resetSeedData } from '../services/api';
 
 export default function Navbar({ onRefresh }) {
   const [isResetting, setIsResetting] = useState(false);
   const [toastMessage, setToastMessage] = useState(null);
+  const navigate = useNavigate();
 
   const handleResetDemo = async () => {
     setIsResetting(true);
@@ -21,33 +23,21 @@ export default function Navbar({ onRefresh }) {
   };
 
   return (
-    <header className="h-16 glass-panel border-b border-gray-800 px-6 flex items-center justify-between sticky top-0 z-20">
-      {/* Loop Ticker */}
-      <div className="flex items-center space-x-3 text-xs">
-        <span className="font-mono text-gray-500 uppercase tracking-widest">Intelligence Loop:</span>
-        <div className="flex items-center space-x-1.5 font-semibold text-indigo-400">
-          <span>DETECT</span>
-          <span className="text-gray-600">→</span>
-          <span>TWIN</span>
-          <span className="text-gray-600">→</span>
-          <span className="text-cyan-400">SIMULATE</span>
-          <span className="text-gray-600">→</span>
-          <span>DECIDE</span>
-          <span className="text-gray-600">→</span>
-          <span className="text-amber-400">GUARD</span>
-          <span className="text-gray-600">→</span>
-          <span>ACT</span>
-          <span className="text-gray-600">→</span>
-          <span className="text-emerald-400">VERIFY</span>
-          <span className="text-gray-600">→</span>
-          <span>LEARN</span>
+    <header className="h-16 surface-level-2 border-b border-gray-800 px-6 flex items-center justify-between sticky top-0 z-20">
+      {/* Live System Status Pulse */}
+      <div className="flex items-center space-x-3 text-xs font-mono">
+        <div className="flex items-center space-x-2 px-3 py-1 rounded-full bg-emerald-500/10 border border-emerald-500/30 text-emerald-400 font-semibold">
+          <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse"></span>
+          <span>● LIVE SYSTEM (98.7% Confidence)</span>
         </div>
+        <span className="text-gray-500 hidden md:inline">|</span>
+        <span className="text-gray-400 hidden md:inline">Autonomous Safety Gates Engaged</span>
       </div>
 
       {/* Actions */}
       <div className="flex items-center space-x-4">
         {toastMessage && (
-          <span className="text-xs bg-indigo-500/20 text-indigo-300 px-3 py-1 rounded-full border border-indigo-500/40 animate-fade-in">
+          <span className="text-xs bg-indigo-500/20 text-indigo-300 px-3 py-1 rounded-full border border-indigo-500/40 animate-fade-in font-mono">
             {toastMessage}
           </span>
         )}
@@ -56,17 +46,20 @@ export default function Navbar({ onRefresh }) {
         <button
           onClick={handleResetDemo}
           disabled={isResetting}
-          className="flex items-center space-x-2 px-3.5 py-1.5 rounded-lg text-xs font-semibold bg-gray-800/80 hover:bg-gray-700 text-gray-200 border border-gray-700 transition duration-150 disabled:opacity-50"
+          className="flex items-center space-x-2 px-3.5 py-1.5 rounded-xl text-xs font-semibold bg-gray-900 hover:bg-gray-800 text-gray-200 border border-gray-700 transition duration-150 disabled:opacity-50"
         >
           <RefreshCw className={`w-3.5 h-3.5 text-cyan-400 ${isResetting ? 'animate-spin' : ''}`} />
-          <span>{isResetting ? 'Seeding 100+ Events...' : 'Reload 100+ Demo Events'}</span>
+          <span>{isResetting ? 'Seeding 100+ Events...' : 'Reload 100+ Events'}</span>
         </button>
 
-        {/* Safety Mode Badge */}
-        <div className="flex items-center space-x-2 px-3 py-1 rounded-lg bg-emerald-500/10 border border-emerald-500/20 text-emerald-400 text-xs font-medium">
-          <ShieldAlert className="w-3.5 h-3.5" />
-          <span>Fatigue Guard™ Active</span>
-        </div>
+        {/* Primary CTA: Launch Recovery Twin */}
+        <button
+          onClick={() => navigate('/twin-lab')}
+          className="flex items-center space-x-2 px-4 py-2 rounded-xl bg-gradient-to-r from-indigo-600 via-indigo-500 to-cyan-500 hover:opacity-95 text-white font-semibold text-xs shadow-lg shadow-indigo-500/25 transition transform hover:scale-[1.02]"
+        >
+          <GitFork className="w-4 h-4 text-white" />
+          <span>Launch Recovery Twin</span>
+        </button>
       </div>
     </header>
   );

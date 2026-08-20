@@ -3,10 +3,11 @@ import { useSearchParams, useNavigate } from 'react-router-dom';
 import { getCases, getCaseById, simulateTwin, executeAction, stopRecovery } from '../services/api';
 import TwinVisualizer from '../components/TwinVisualizer';
 import StrategyMatrix from '../components/StrategyMatrix';
-import SafetyCheckBadge from '../components/SafetyCheckBadge';
+import ExplainabilityEngine from '../components/ExplainabilityEngine';
+import FatigueGuardVisual from '../components/FatigueGuardVisual';
+import StagedSimulationLoader from '../components/StagedSimulationLoader';
 import DecisionReceiptModal from '../components/DecisionReceiptModal';
-import GracefulFailureNotice from '../components/GracefulFailureNotice';
-import { GitFork, Play, ShieldAlert, AlertTriangle, Receipt, RefreshCw, CheckCircle, StopCircle } from 'lucide-react';
+import { GitFork, Play, AlertTriangle, Receipt, RefreshCw, StopCircle } from 'lucide-react';
 
 export default function RecoveryTwinLab() {
   const [searchParams] = useSearchParams();
@@ -18,6 +19,7 @@ export default function RecoveryTwinLab() {
   const [currentCase, setCurrentCase] = useState(null);
   const [loading, setLoading] = useState(true);
   const [simulating, setSimulating] = useState(false);
+  const [showStagedLoader, setShowStagedLoader] = useState(false);
   const [executing, setExecuting] = useState(false);
   const [showReceipt, setShowReceipt] = useState(false);
   const [actionNotice, setActionNotice] = useState(null);
@@ -64,15 +66,20 @@ export default function RecoveryTwinLab() {
   const handleSimulateTwin = async () => {
     if (!selectedCaseId) return;
     setSimulating(true);
+    setShowStagedLoader(true);
+  };
+
+  const handleSimulationLoaderComplete = async () => {
     try {
       const res = await simulateTwin(selectedCaseId);
       if (res.data.success) {
         await loadCaseDetails(selectedCaseId);
-        setActionNotice({ type: 'success', text: '✅ Revenue Rescue Twin simulated successfully across 7 candidate pathways!' });
+        setActionNotice({ type: 'success', text: '✅ WINNING STRATEGY IDENTIFIED across 7 simulated pathways!' });
       }
     } catch (e) {
       setActionNotice({ type: 'error', text: '❌ Simulation failed.' });
     } finally {
+      setShowStagedLoader(false);
       setSimulating(false);
     }
   };
@@ -119,30 +126,30 @@ export default function RecoveryTwinLab() {
 
   return (
     <div className="space-y-8 pb-12 animate-fade-in">
-      {/* Title & Case Picker Bar */}
+      {/* Title Header & Case Picker */}
       <div className="flex flex-wrap items-center justify-between gap-4">
         <div>
           <div className="flex items-center space-x-2">
-            <GitFork className="w-6 h-6 text-indigo-400" />
-            <h1 className="text-2xl font-bold text-white font-heading tracking-tight">Recovery Twin Lab</h1>
-            <span className="text-xs px-2.5 py-0.5 rounded-full font-semibold bg-gradient-to-r from-indigo-500 to-cyan-500 text-white shadow-sm">
-              REVIVE Innovation Signature
+            <GitFork className="w-6 h-6 text-violet-400" />
+            <h1 className="text-2xl lg:text-3xl font-extrabold text-white font-heading tracking-tight">RECOVERY TWIN LAB</h1>
+            <span className="text-xs px-2.5 py-0.5 rounded-full font-bold bg-gradient-to-r from-violet-500 to-indigo-500 text-white shadow-sm font-mono">
+              ✦ REVIVE SIGNATURE INNOVATION
             </span>
           </div>
-          <p className="text-xs text-gray-400 mt-1">Simulate revenue pathways, compute ENRS, and execute safe bounded interventions</p>
+          <p className="text-xs text-gray-400 mt-1 font-mono">Simulate recovery futures before taking action.</p>
         </div>
 
-        {/* Selector */}
+        {/* Case Selector */}
         <div className="flex items-center space-x-3">
           <label className="text-xs text-gray-400 font-mono">Select Case:</label>
           <select
             value={selectedCaseId}
             onChange={(e) => setSelectedCaseId(e.target.value)}
-            className="bg-gray-900 border border-indigo-500/30 rounded-xl px-3.5 py-2 text-xs font-mono font-semibold text-white focus:outline-none focus:border-indigo-500"
+            className="bg-gray-900 border border-violet-500/40 rounded-xl px-3.5 py-2 text-xs font-mono font-semibold text-white focus:outline-none focus:border-violet-500"
           >
             {allCases.map((c) => (
               <option key={c.id} value={c.id}>
-                {c.id} • {c.revenueEvent?.eventType || 'PAYMENT_FAILED'} (₹{c.revenueEvent?.amount?.toLocaleString() || 5000})
+                #RV-{c.id?.substring(0, 6)} • {c.revenueEvent?.eventType || 'PAYMENT_FAILED'} (₹{c.revenueEvent?.amount?.toLocaleString() || 5000})
               </option>
             ))}
           </select>
@@ -150,7 +157,7 @@ export default function RecoveryTwinLab() {
       </div>
 
       {actionNotice && (
-        <div className={`p-4 rounded-xl text-xs font-medium border animate-fade-in ${
+        <div className={`p-4 rounded-xl text-xs font-semibold border animate-fade-in ${
           actionNotice.type === 'success' ? 'bg-emerald-500/10 border-emerald-500/30 text-emerald-300' :
           actionNotice.type === 'graceful_failure' ? 'bg-amber-500/10 border-amber-500/30 text-amber-300' :
           'bg-rose-500/10 border-rose-500/30 text-rose-300'
@@ -159,27 +166,32 @@ export default function RecoveryTwinLab() {
         </div>
       )}
 
+      {/* Staged Intelligence Simulation Loading Modal */}
+      {showStagedLoader && (
+        <StagedSimulationLoader onComplete={handleSimulationLoaderComplete} />
+      )}
+
       {loading || !currentCase ? (
-        <div className="p-12 text-center text-gray-400 space-y-3 glass-panel rounded-2xl">
-          <RefreshCw className="w-8 h-8 text-indigo-400 animate-spin mx-auto" />
-          <p className="text-xs font-mono">Instantiating Revenue Rescue Twin Digital Sandbox...</p>
+        <div className="p-12 text-center text-gray-400 space-y-3 surface-level-2 rounded-2xl">
+          <RefreshCw className="w-8 h-8 text-violet-400 animate-spin mx-auto" />
+          <p className="text-xs font-mono">Initializing Recovery Digital Twin Sandbox...</p>
         </div>
       ) : (
         <>
-          {/* Rescue Twin Node Graph */}
+          {/* Digital Twin Interactive Canvas */}
           <TwinVisualizer
             rescueTwin={currentCase.rescueTwin}
             simulations={currentCase.strategySimulations}
             selectedStrategy={currentCase.selectedStrategy}
           />
 
-          {/* Controls Bar */}
-          <div className="glass-panel p-5 rounded-2xl border border-gray-800 flex flex-wrap items-center justify-between gap-4">
+          {/* Execution Controls Bar */}
+          <div className="surface-level-2 p-5 rounded-2xl border border-gray-800 flex flex-wrap items-center justify-between gap-4">
             <div className="flex items-center space-x-3">
               <button
                 onClick={handleSimulateTwin}
                 disabled={simulating}
-                className="flex items-center space-x-2 px-4 py-2 rounded-xl bg-gray-800 hover:bg-gray-700 text-cyan-400 font-semibold text-xs border border-cyan-500/30 transition disabled:opacity-50"
+                className="flex items-center space-x-2 px-4 py-2 rounded-xl bg-gray-900 hover:bg-gray-800 text-cyan-400 font-semibold text-xs border border-cyan-500/30 transition disabled:opacity-50 font-mono"
               >
                 <RefreshCw className={`w-3.5 h-3.5 ${simulating ? 'animate-spin' : ''}`} />
                 <span>{simulating ? 'Simulating Pathways...' : 'Re-Run Multi-Path Simulation'}</span>
@@ -191,16 +203,16 @@ export default function RecoveryTwinLab() {
                 className="flex items-center space-x-2 px-4 py-2 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white font-semibold text-xs shadow-lg shadow-emerald-600/30 transition disabled:opacity-50"
               >
                 <Play className="w-3.5 h-3.5" />
-                <span>{executing ? 'Executing Action...' : 'Execute Optimal Safe Strategy'}</span>
+                <span>{executing ? 'Executing Action...' : 'EXECUTE SAFELY'}</span>
               </button>
             </div>
 
             <div className="flex items-center space-x-3">
-              {/* Mandatory Demo Graceful Failure Trigger */}
+              {/* Mandatory Demo Graceful Failure Button */}
               <button
                 onClick={() => handleExecuteAction(true)}
                 disabled={executing}
-                className="flex items-center space-x-2 px-4 py-2 rounded-xl bg-amber-500/20 hover:bg-amber-500/30 text-amber-300 font-semibold text-xs border border-amber-500/40 transition"
+                className="flex items-center space-x-2 px-4 py-2 rounded-xl bg-amber-500/20 hover:bg-amber-500/30 text-amber-300 font-semibold text-xs border border-amber-500/40 transition font-mono"
               >
                 <AlertTriangle className="w-3.5 h-3.5 text-amber-400" />
                 <span>Simulate Graceful Failure Demo</span>
@@ -224,9 +236,14 @@ export default function RecoveryTwinLab() {
             </div>
           </div>
 
-          {/* Safety & Strategy Matrix Grid */}
+          {/* Explainability Engine & Safety Shield Grid */}
           <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
             <div className="lg:col-span-2 space-y-6">
+              <ExplainabilityEngine
+                selectedStrategy={currentCase.selectedStrategy}
+                simulations={currentCase.strategySimulations}
+              />
+
               <StrategyMatrix
                 simulations={currentCase.strategySimulations}
                 selectedStrategy={currentCase.selectedStrategy}
@@ -234,10 +251,10 @@ export default function RecoveryTwinLab() {
             </div>
 
             <div className="space-y-6">
-              <SafetyCheckBadge
-                gates={currentCase.safetyGates}
-                requiresManualApproval={currentCase.revenueEvent?.amount > 10000}
+              <FatigueGuardVisual
+                fatigueScore={currentCase.rescueTwin?.recoveryFatigueScore || 0.22}
                 isBlocked={currentCase.status === 'STOPPED'}
+                blockReason="Safety threshold reached for repeated retry interventions."
               />
             </div>
           </div>
