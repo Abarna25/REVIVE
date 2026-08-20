@@ -1,11 +1,22 @@
 import React from 'react';
+import { useNavigate } from 'react-router-dom';
 import { X, Receipt, CheckCircle, ShieldCheck, Zap, ArrowRight, DollarSign, Download, Lock, Check } from 'lucide-react';
 import StrategyMatrix from './StrategyMatrix';
 import AuditTimeline from './AuditTimeline';
 import GracefulFailureNotice from './GracefulFailureNotice';
 
 export default function DecisionReceiptModal({ caseData, onClose }) {
+  const navigate = useNavigate();
+
   if (!caseData) return null;
+
+  const handleClose = () => {
+    if (typeof onClose === 'function') {
+      onClose();
+    } else {
+      navigate(-1);
+    }
+  };
 
   const event = caseData.revenueEvent;
   const twin = caseData.rescueTwin;
@@ -20,8 +31,9 @@ export default function DecisionReceiptModal({ caseData, onClose }) {
       <div className="surface-level-3 w-full max-w-4xl rounded-3xl border border-indigo-500/40 p-8 space-y-6 shadow-2xl glow-indigo relative max-h-[90vh] overflow-y-auto">
         {/* Close Button */}
         <button
-          onClick={onClose}
+          onClick={handleClose}
           className="absolute top-6 right-6 p-2 rounded-xl bg-gray-800 text-gray-400 hover:text-white hover:bg-gray-700 transition"
+          title="Close Decision Receipt"
         >
           <X className="w-5 h-5" />
         </button>
@@ -149,8 +161,8 @@ export default function DecisionReceiptModal({ caseData, onClose }) {
           </div>
 
           <button
-            onClick={onClose}
-            className="px-5 py-2 rounded-xl bg-indigo-600 hover:bg-indigo-500 text-white font-semibold transition shadow-lg shadow-indigo-600/30"
+            onClick={handleClose}
+            className="px-5 py-2 rounded-xl bg-indigo-600 hover:bg-indigo-500 text-white font-semibold transition shadow-lg shadow-indigo-600/30 font-mono"
           >
             Close Decision Receipt
           </button>

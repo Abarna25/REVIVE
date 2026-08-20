@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react';
-import { useSearchParams } from 'react-router-dom';
+import { useSearchParams, useNavigate } from 'react-router-dom';
 import { getCases, getCaseById } from '../services/api';
 import DecisionReceiptModal from '../components/DecisionReceiptModal';
 import { Receipt, RefreshCw } from 'lucide-react';
@@ -7,6 +7,7 @@ import { Receipt, RefreshCw } from 'lucide-react';
 export default function DecisionReceiptPage() {
   const [searchParams] = useSearchParams();
   const caseIdParam = searchParams.get('caseId');
+  const navigate = useNavigate();
 
   const [allCases, setAllCases] = useState([]);
   const [selectedCaseId, setSelectedCaseId] = useState(caseIdParam || '');
@@ -48,6 +49,10 @@ export default function DecisionReceiptPage() {
     load();
   }, [selectedCaseId]);
 
+  const handleClose = () => {
+    navigate('/twin-lab');
+  };
+
   return (
     <div className="space-y-6 pb-12 animate-fade-in">
       <div className="flex items-center justify-between">
@@ -82,7 +87,7 @@ export default function DecisionReceiptPage() {
         </div>
       ) : (
         <div className="glass-panel p-8 rounded-3xl border border-indigo-500/30 space-y-6 shadow-2xl">
-          <DecisionReceiptModal caseData={currentCase} onClose={() => {}} />
+          <DecisionReceiptModal caseData={currentCase} onClose={handleClose} />
         </div>
       )}
     </div>
