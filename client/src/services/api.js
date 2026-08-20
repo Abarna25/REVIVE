@@ -34,6 +34,7 @@ export const executeAction = (id, idempotencyKey = null, extra = {}) => {
 };
 
 export const approveAction = (id) => api.post(`/api/recovery-cases/${id}/approve`);
+export const confirmPayment = (id, paymentReference = null, status = 'CONFIRMED') => api.post(`/api/recovery-cases/${id}/confirm-payment`, { paymentReference, status });
 export const stopRecovery = (id) => api.post(`/api/recovery-cases/${id}/stop`);
 
 export const getSafetyChecks = (id) => api.get(`/api/recovery-cases/${id}/safety-checks`);

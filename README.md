@@ -1,210 +1,154 @@
 # REVIVE™ — An Explainable Autonomous Revenue Recovery Engine
 
-> **Hackathon Edition • AI-Native Fintech Revenue Recovery Platform**
+> **Do not blindly chase every failed payment. Simulate recovery paths and rescue the right revenue, using the right intervention, at the right time.**
 
-REVIVE™ is an enterprise-grade autonomous revenue recovery engine. Unlike generic payment reminder apps or naive retry scripts, REVIVE™ instantiates a **Revenue Rescue Twin** for every revenue-at-risk event, simulates multiple recovery pathways, computes deterministic **Expected Net Recovery Scores (ENRS)**, enforces merchant **Safety Gates** and **Recovery Fatigue Guard™**, executes or simulates bounded interventions via **Razorpay Test Mode**, and produces immutable **Explainable Decision Receipts™**.
+REVIVE™ is an enterprise-grade AI SaaS application that detects revenue at risk, creates a temporary **Revenue Rescue Twin** for each recovery event, simulates candidate recovery strategies in parallel, ranks them using the **Expected Net Recovery Score (ENRS)** formula, enforces safety boundaries via **Recovery Fatigue Guard™**, and manages the full payment lifecycle with explicit financial accuracy.
 
 ---
 
-## Central Innovation: The Revenue Rescue Twin
-
-**Do not blindly chase every failed payment. Simulate recovery paths and rescue the right revenue, using the right intervention, at the right time.**
-
-REVIVE™ follows a unique 8-stage intelligence loop:
+## ⚡ Core Autonomous Intelligence Loop
 
 ```text
-  ┌──────────┐    ┌──────────┐    ┌──────────┐    ┌──────────┐
-  │  DETECT  │───►│   TWIN   │───►│ SIMULATE │───►│  DECIDE  │
-  └──────────┘    └──────────┘    └──────────┘    └──────────┘
-                                                       │
-  ┌──────────┐    ┌──────────┐    ┌──────────┐         ▼
-  │  LEARN   │◄───│  VERIFY  │◄───│   ACT    │◄───┌──────────┐
-  └──────────┘    └──────────┘    └──────────┘    │  GUARD   │
-                                                  └──────────┘
+  ┌─────────┐      ┌─────────┐      ┌──────────┐      ┌─────────┐
+  │ DETECT  │ ───► │  TWIN   │ ───► │ SIMULATE │ ───► │ DECIDE  │
+  └─────────┘      └─────────┘      └──────────┘      └─────────┘
+                                                           │
+  ┌─────────┐      ┌─────────┐      ┌──────────┐      ┌────▼────┐
+  │  LEARN  │ ◄─── │ VERIFY  │ ◄─── │   ACT    │ ◄─── │  GUARD  │
+  └─────────┘      └─────────┘      └──────────┘      └─────────┘
 ```
 
-1. **DETECT**: Ingests payment failures, abandoned checkouts, and overdue invoices.
-2. **TWIN**: Instantiates a contextual Revenue Rescue Twin (history score, engagement level, fatigue score).
-3. **SIMULATE**: Evaluates 7 candidate strategies (`RETRY_NOW`, `RETRY_OPTIMAL_TIME`, `PAYMENT_LINK`, `ALTERNATE_PAYMENT`, `PERSONALIZED_REMINDER`, `MANUAL_ESCALATION`, `STOP_INTERVENTION`).
-4. **DECIDE**: Computes Expected Net Recovery Score:  
-   $$\text{ENRS} = (\text{Predicted Recovery Prob} \times \text{Revenue Amount}) - \text{Cost} - \text{Fatigue Penalty}$$
-5. **GUARD**: Checks Recovery Fatigue Guard™ & Merchant Safety Gates.
-6. **ACT**: Executes bounded recovery via Razorpay Test Mode or Simulation with Idempotency Key protection.
-7. **VERIFY**: Validates outcome and issues an Explainable Recovery Receipt™.
-8. **LEARN**: Updates historical strategy accuracy telemetry.
+1. **DETECT**: Ingests payment failures, overdue invoices, and abandoned checkouts in real-time.
+2. **TWIN**: Constructs an ephemeral **Revenue Rescue Twin** contextualizing payment history, engagement score, and fatigue level.
+3. **SIMULATE**: Runs multi-path simulations across candidate recovery strategies (`RETRY_OPTIMAL_TIME`, `PAYMENT_LINK`, `ALTERNATE_PAYMENT`, `DISCOUNT_INCENTIVE`, `STOP_INTERVENTION`).
+4. **DECIDE**: Ranks strategies deterministically using Expected Net Recovery Score (ENRS).
+5. **GUARD**: Evaluates deterministic safety gates (Fatigue Guard™, max retries, minimum ENRS, manual approval threshold).
+6. **ACT**: Executes payment retry or sends payment link via Razorpay / Simulation API.
+7. **VERIFY**: Enforces explicit payment confirmation (`POST /confirm-payment`) before revenue is counted as `RECOVERED`.
+8. **LEARN**: Records outcome telemetry to tune future recovery probability predictions.
 
 ---
 
-## 🚀 Key Features & Architectural Highlights
+## 🛡️ Recovery Lifecycle State Machine
 
-- **8 Core Operation Pages**:
-  1. **Executive Dashboard**: High-level KPIs, live case stream, velocity charts.
-  2. **Revenue Radar**: Stream of all detected events with search and filters.
-  3. **Recovery Twin Lab**: Signature visual node graph & strategy matrix.
-  4. **Decision Receipt**: Audit-ready receipt modal with root cause & safety breakdown.
-  5. **Control Center**: Queues for high-value manual approvals and pending actions.
-  6. **Audit Trail**: Append-only chronological system event log.
-  7. **Batch Analytics**: Empirical performance metrics across 100+ synthetic events.
-  8. **Settings & Safety**: Configurable merchant limits & stopping rules.
+```mermaid
+stateDiagram-v2
+    [*] --> DETECTED
+    DETECTED --> ANALYZING: Risk Ingestion
+    ANALYZING --> SIMULATED: Rescue Twin Created
+    SIMULATED --> DECIDED: ENRS Ranking
+    DECIDED --> AWAITING_APPROVAL: Approval Threshold (> ₹10k)
+    AWAITING_APPROVAL --> READY_TO_EXECUTE: Merchant Approves
+    DECIDED --> READY_TO_EXECUTE: Autonomous Approved
+    DECIDED --> STOPPED: STOP_INTERVENTION
+    READY_TO_EXECUTE --> EXECUTING: Trigger Payment Call
+    EXECUTING --> AWAITING_PAYMENT_CONFIRMATION: Link / Retry Created
+    AWAITING_PAYMENT_CONFIRMATION --> RECOVERED: Payment Confirmed (POST /confirm-payment)
+    AWAITING_PAYMENT_CONFIRMATION --> FAILED_GRACEFULLY: Link Expired / Timeout
+    EXECUTING --> FAILED_GRACEFULLY: Gateway Error
+```
 
-- **Mandatory Demo Scenario (Graceful Failure)**:
-  Simulates a gateway response timeout during execution. System detects the failure, preserves the audit trail, locks idempotency to prevent duplicate charges, and alerts operator cleanly:  
-  `Action Failed Gracefully → No duplicate charge → Case safely preserved for review`
+---
 
-- **Dual Mode Resiliency**:
-  - Payment Execution: Razorpay Test Mode API & Simulation Mode.
-  - AI Explanations: Google Gemini 1.5 API & Deterministic Fallback Engine.
-  - Database: Prisma PostgreSQL (Supabase / Postgres) & Dual In-Memory Store.
+## 🧮 Expected Net Recovery Score (ENRS) Formula
+
+The engine evaluates candidate recovery pathways using a deterministic financial equation:
+
+$$\text{ENRS} = \left(\text{Predicted Recovery Probability} \times \text{Revenue Amount}\right) - \text{Intervention Cost} - \text{Recovery Fatigue Penalty}$$
+
+- **High-probability, low-cost pathways win.**
+- If all strategies produce negative ENRS or exceed customer fatigue limits, the system selects **`STOP_INTERVENTION`** to protect customer lifetime value.
+
+---
+
+## 💳 Financial Accuracy Guarantee
+
+> **Creating a payment link is NOT the same as recovering money.**
+
+1. Triggering an action moves the recovery case to **`AWAITING_PAYMENT_CONFIRMATION`** with `recoveredAmount = ₹0` and `netRevenueSaved = ₹0`.
+2. Revenue is counted as **`RECOVERED` ONLY** when explicitly confirmed via the backend verification endpoint:
+   `POST /api/recovery-cases/:id/confirm-payment`
+3. Prevents duplicate charges and eliminates fake financial telemetry.
 
 ---
 
 ## 🛠️ Technology Stack
 
-- **Frontend**: React 18, Vite, Tailwind CSS, Lucide Icons, Recharts, Axios, React Router v6.
-- **Backend**: Node.js, Express.js, Prisma ORM.
-- **Database**: PostgreSQL / Supabase PostgreSQL.
-- **AI Layer**: Google Gemini API & Deterministic Evidence Model.
-- **Payments**: Razorpay Test Mode API.
+- **Frontend**: React 18, Vite, Tailwind CSS, Recharts, Lucide Icons, React Router v6
+- **Backend API**: Node.js, Express.js, Prisma ORM
+- **Database**: PostgreSQL (Supabase / Render) with automatic fallback to REVIVE™ Dual In-Memory Database Adapter
+- **Payment Gateway**: Razorpay Test Mode API & Simulation Mode
+- **Testing**: Node.js Built-in Test Runner (`node:test`)
 
 ---
 
-## 📦 Monorepo Directory Structure
+## 🚀 Quick Start Guide
 
-```text
-REVIVE_Razorpay/
-├── client/                      # React 18 + Vite Frontend
-│   ├── src/
-│   │   ├── components/          # TwinVisualizer, StrategyMatrix, DecisionReceiptModal, etc.
-│   │   ├── pages/               # 8 Core Operation Pages
-│   │   ├── services/            # Centralized API Client (VITE_API_URL)
-│   │   ├── App.jsx
-│   │   ├── main.jsx
-│   │   └── index.css
-│   ├── package.json
-│   └── vite.config.js
-│
-├── server/                      # Node.js + Express + Prisma Backend
-│   ├── src/
-│   │   ├── config/              # Env & Prisma Client
-│   │   ├── engines/             # Detection, Diagnosis, Twin, Scoring, Safety, AI, Learning
-│   │   ├── integrations/        # Razorpay Test Mode Client & Fallback Simulation
-│   │   ├── repositories/        # Dual Prisma & Memory Database Adapter
-│   │   ├── controllers/         # Events, Cases, Twin, Strategy, Action, Safety, Audit, Analytics
-│   │   ├── routes/              # REST Endpoints
-│   │   └── app.js               # Express Entry & Health Endpoint
-│   ├── prisma/
-│   │   ├── schema.prisma        # 9 Core Relational Models
-│   │   └── seed.js              # Seeds 100+ Realistic Synthetic Events
-│   ├── .env.example
-│   └── package.json
-│
-├── package.json                 # Monorepo Workspace Scripts
-└── README.md
-```
-
----
-
-## ⚡ Quick Start & Local Setup
-
-### 1. Install Dependencies
-
+### 1. Installation
 ```bash
-npm run install:all
+# Clone repository
+git clone https://github.com/Abarna25/REVIVE.git
+cd REVIVE
+
+# Install server & client dependencies
+npm --prefix server install
+npm --prefix client install
 ```
 
-### 2. Configure Environment Variables
-
-Create `server/.env` based on `server/.env.example`:
-
+### 2. Environment Setup
+Create a `.env` file in `server/` (or copy `.env.example`):
 ```env
-NODE_ENV=development
 PORT=5000
-
-# Optional: Supabase / PostgreSQL Connection String
-DATABASE_URL=postgresql://postgres.xxx:xxx@aws-0-ap-south-1.pooler.supabase.com:6543/postgres?pgbouncer=true
-DIRECT_URL=postgresql://postgres.xxx:xxx@aws-0-ap-south-1.pooler.supabase.com:5432/postgres
-
+NODE_ENV=development
 FRONTEND_URL=http://localhost:5173
-
-# Optional: Razorpay Test Mode Credentials
-RAZORPAY_KEY_ID=rzp_test_your_key_here
-RAZORPAY_KEY_SECRET=your_secret_here
 PAYMENT_MODE=simulation
-
-# Optional: Google Gemini API Key
-AI_API_KEY=your_gemini_key_here
-AI_MODE=enabled
+DEMO_MODE=true
 ```
 
-Create `client/.env` based on `client/.env.example`:
-
-```env
-VITE_API_URL=http://localhost:5000
-```
-
-### 3. Initialize Prisma Database & Seed 100+ Events
-
+### 3. Run Automated Tests
 ```bash
-npm run prisma:generate
-npm run prisma:seed
+npm --prefix server test
 ```
 
-*(Note: If DATABASE_URL is not set, REVIVE™ automatically utilizes its Dual Memory Store pre-seeded with 100+ events out of the box!)*
-
-### 4. Run Development Servers
-
-Run backend and frontend concurrently:
-
+### 4. Launch Application
 ```bash
-# Terminal 1: Express Server (Port 5000)
-npm run dev:server
+# Terminal 1: Backend Express API (Port 5000)
+npm --prefix server run dev
 
-# Terminal 2: React Client (Port 5173)
-npm run dev:client
+# Terminal 2: Vite React Frontend (Port 5173)
+npm --prefix client run dev
 ```
 
-Open `http://localhost:5173` in your browser.
+Open [http://localhost:5173](http://localhost:5173) in your browser.
 
 ---
 
-## 📡 REST API Endpoint Summary
+## ☁️ Cloud Deployment Instructions
 
-### Health Check
-- `GET /health` — Cloud deployment health check (`{ status: "ok", service: "REVIVE API" }`)
+### Backend (Render / Railway / Heroku)
+1. Set Root Directory to `server`.
+2. Build Command: `npm install && npx prisma generate`
+3. Start Command: `npm start`
+4. Set Environment Variables:
+   - `NODE_ENV=production`
+   - `PORT=5000`
+   - `FRONTEND_URL=https://your-app.vercel.app`
+   - `DATABASE_URL=postgresql://postgres:...@db.supabase.co:5432/postgres`
 
-### Revenue Events
-- `GET /api/events` — Retrieve all detected events
-- `GET /api/events/:id` — Get event details
-- `POST /api/events/ingest` — Ingest custom revenue event
+### Database (Supabase PostgreSQL)
+```bash
+cd server
+npx prisma db push
+```
 
-### Recovery Cases & Twins
-- `GET /api/recovery-cases` — List all recovery cases
-- `GET /api/recovery-cases/:id` — Get case details
-- `POST /api/recovery-cases/:id/analyze` — Run AI diagnosis & reasoning
-- `GET /api/recovery-cases/:id/twin` — Get Revenue Rescue Twin
-- `POST /api/recovery-cases/:id/simulate` — Re-run 7 strategy pathways simulation
-
-### Actions & Safety
-- `POST /api/recovery-cases/:id/execute` — Execute optimal strategy (with Idempotency Key)
-- `POST /api/recovery-cases/:id/approve` — Merchant manual approval
-- `POST /api/recovery-cases/:id/stop` — Stop recovery workflow
-- `GET /api/recovery-policy/policy` — Get merchant policy
-- `PUT /api/recovery-policy/policy` — Update safety gate thresholds
-
-### Analytics & Audit
-- `GET /api/analytics/dashboard` — Executive summary KPIs
-- `GET /api/analytics/batch-performance` — 100+ events batch metrics
-- `POST /api/demo/reset-seed` — Reload 100+ synthetic demo events
-- `GET /api/audit` — Get chronological audit logs
+### Frontend (Vercel / Netlify)
+1. Set Root Directory to `client`.
+2. Build Command: `npm run build`
+3. Output Directory: `dist`
+4. Environment Variable:
+   - `VITE_API_URL=https://your-backend.onrender.com`
 
 ---
 
-## ☁️ Deployment Architecture
-
-- **Frontend**: Deploy `client/` to **Vercel** (`npm run build` -> `dist/`).
-- **Backend**: Deploy `server/` to **Render** / **Railway** (`npm start`).
-- **Database**: Managed **Supabase PostgreSQL** via Prisma ORM.
-
-Set `VITE_API_URL` on Vercel and `FRONTEND_URL` + `DATABASE_URL` on Render/Railway.
-
----
+## 📄 License
+MIT © REVIVE™ Team

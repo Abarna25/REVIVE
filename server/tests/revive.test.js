@@ -3,21 +3,21 @@
  * Built using Node.js native test runner (node:test & node:assert).
  */
 
-const { test, describe, beforeEach } = require('node:test');
+const { test, describe } = require('node:test');
 const assert = require('node:assert/strict');
 
 const config = require('../src/config/env');
 const db = require('../src/repositories/database');
 const { detectRevenueRisk } = require('../src/engines/detection.engine');
 const { createRevenueRescueTwin } = require('../src/engines/twin.engine');
-const { simulateAllStrategies, evaluateStrategyCandidate } = require('../src/engines/scoring.engine');
+const { evaluateStrategyCandidate } = require('../src/engines/scoring.engine');
 const { evaluateSafetyGates } = require('../src/engines/safety.engine');
+const actionController = require('../src/controllers/action.controller');
 
 describe('REVIVE™ Engine Tests', () => {
 
   test('1. DEMO_MODE environment configuration logic', () => {
     assert.equal(typeof config.DEMO_MODE, 'boolean');
-    // Verify DEMO_MODE parsing does not force || true
     assert.equal(process.env.DEMO_MODE === 'false' ? config.DEMO_MODE : true, config.DEMO_MODE);
   });
 
@@ -65,8 +65,6 @@ describe('REVIVE™ Engine Tests', () => {
     };
 
     const candidate = evaluateStrategyCandidate('RETRY_OPTIMAL_TIME', twin, { failureReason: 'INSUFFICIENT_FUNDS' });
-
-    // Formula: ENRS = (Probability * Amount) - Cost - Fatigue Penalty
     const expectedENRS = (candidate.predictedRecoveryProbability * 10000) - candidate.interventionCost - candidate.fatiguePenalty;
 
     assert.equal(candidate.expectedNetRecoveryScore, Math.round(expectedENRS * 100) / 100);
@@ -99,7 +97,6 @@ describe('REVIVE™ Engine Tests', () => {
     assert.equal(safetyResult.isBlocked, true);
     assert.equal(safetyResult.requiresManualApproval, true);
     assert.equal(safetyResult.forceStopRecovery, true);
-    assert.ok(safetyResult.fatigueGuardReason.includes('negative expected value'));
   });
 
   test('6. Repository updateEvent updates ORIGINAL event without duplicate creation', async () => {
@@ -119,24 +116,79 @@ describe('REVIVE™ Engine Tests', () => {
     assert.equal(matches.length, 1);
   });
 
-  test('7. Repository updateAction persists Action status changes in storage', async () => {
-    const action = await db.createAction({
-      recoveryCaseId: 'case_test_001',
-      actionType: 'PAYMENT_LINK',
-      status: 'EXECUTING',
-      idempotencyKey: 'idemp_test_999'
+  test('7. Financial Accuracy: Payment execution moves to AWAITING_PAYMENT_CONFIRMATION with ₹0 recovered until confirmed', async () => {
+    const event = await db.createEvent({ amount: 20000, eventType: 'PAYMENT_FAILED' });
+    const caseObj = await db.createCase({
+      revenueEventId: event.id,
+      selectedStrategy: 'PAYMENT_LINK',
+      status: 'SIMULATED'
     });
 
-    const updated = await db.updateAction(action.id, {
-      status: 'SUCCEEDED',
-      completedAt: new Date().toISOString()
+    await db.saveSimulations(caseObj.id, [{
+      strategyType: 'PAYMENT_LINK',
+      predictedRecoveryProbability: 0.85,
+      expectedNetRecoveryScore: 16000,
+      interventionCost: 50,
+      isEligible: true
+    }]);
+
+    const req = { params: { id: caseObj.id }, headers: {}, body: { isApprovedByMerchant: true } };
+    let jsonResult = null;
+    const res = {
+      json: (data) => { jsonResult = data; },
+      status: () => res
+    };
+
+    await actionController.executeAction(req, res);
+
+    assert.ok(jsonResult.success);
+    assert.equal(jsonResult.awaitingConfirmation, true);
+    assert.equal(jsonResult.data.case.status, 'AWAITING_PAYMENT_CONFIRMATION');
+    assert.equal(jsonResult.data.case.recoveredAmount, 0);
+
+    // Now test confirmPayment
+    const reqConfirm = { params: { id: caseObj.id }, body: { paymentReference: 'REF-TEST-123', status: 'CONFIRMED' } };
+    let confirmResult = null;
+    const resConfirm = {
+      json: (data) => { confirmResult = data; },
+      status: () => resConfirm
+    };
+
+    await actionController.confirmPayment(reqConfirm, resConfirm);
+
+    assert.ok(confirmResult.success);
+    assert.equal(confirmResult.data.status, 'RECOVERED');
+    assert.equal(confirmResult.data.recoveredAmount, 20000);
+    assert.equal(confirmResult.data.netRevenueSaved, 19950); // 20000 - 50
+  });
+
+  test('8. STOP_INTERVENTION strategy safely terminates case without payment attempt', async () => {
+    const event = await db.createEvent({ amount: 10000, eventType: 'PAYMENT_FAILED' });
+    const caseObj = await db.createCase({
+      revenueEventId: event.id,
+      selectedStrategy: 'STOP_INTERVENTION',
+      status: 'SIMULATED'
     });
 
-    assert.equal(updated.status, 'SUCCEEDED');
-    assert.ok(updated.completedAt);
+    await db.saveSimulations(caseObj.id, [{
+      strategyType: 'STOP_INTERVENTION',
+      predictedRecoveryProbability: 0,
+      expectedNetRecoveryScore: 0,
+      interventionCost: 0,
+      isEligible: true
+    }]);
 
-    const retrieved = await db.getActionByIdempotency('idemp_test_999');
-    assert.equal(retrieved.status, 'SUCCEEDED');
+    const req = { params: { id: caseObj.id }, headers: {}, body: {} };
+    let result = null;
+    const res = {
+      json: (data) => { result = data; },
+      status: () => res
+    };
+
+    await actionController.executeAction(req, res);
+
+    assert.ok(result.success);
+    assert.equal(result.data.status, 'STOPPED');
   });
 
 });

@@ -1,13 +1,13 @@
 import React, { useEffect, useState } from 'react';
 import { useSearchParams, useNavigate } from 'react-router-dom';
-import { getCases, getCaseById, simulateTwin, executeAction, stopRecovery } from '../services/api';
+import { getCases, getCaseById, simulateTwin, executeAction, confirmPayment, stopRecovery } from '../services/api';
 import TwinVisualizer from '../components/TwinVisualizer';
 import StrategyMatrix from '../components/StrategyMatrix';
 import ExplainabilityEngine from '../components/ExplainabilityEngine';
 import FatigueGuardVisual from '../components/FatigueGuardVisual';
 import StagedSimulationLoader from '../components/StagedSimulationLoader';
 import DecisionReceiptModal from '../components/DecisionReceiptModal';
-import { GitFork, Play, AlertTriangle, Receipt, RefreshCw, StopCircle } from 'lucide-react';
+import { GitFork, Play, AlertTriangle, Receipt, RefreshCw, StopCircle, CheckCircle2, Clock } from 'lucide-react';
 
 export default function RecoveryTwinLab() {
   const [searchParams] = useSearchParams();
@@ -21,6 +21,7 @@ export default function RecoveryTwinLab() {
   const [simulating, setSimulating] = useState(false);
   const [showStagedLoader, setShowStagedLoader] = useState(false);
   const [executing, setExecuting] = useState(false);
+  const [confirming, setConfirming] = useState(false);
   const [showReceipt, setShowReceipt] = useState(false);
   const [actionNotice, setActionNotice] = useState(null);
 
@@ -98,7 +99,7 @@ export default function RecoveryTwinLab() {
         if (res.data.handledGracefully) {
           setActionNotice({ type: 'graceful_failure', text: res.data.message });
         } else {
-          setActionNotice({ type: 'success', text: `✅ Recovery Action executed successfully! Revenue recovered.` });
+          setActionNotice({ type: 'awaiting', text: `⌛ Payment intervention initialized! Moved to AWAITING_PAYMENT_CONFIRMATION.` });
         }
       }
     } catch (err) {
@@ -110,6 +111,23 @@ export default function RecoveryTwinLab() {
       }
     } finally {
       setExecuting(false);
+    }
+  };
+
+  const handleConfirmPayment = async () => {
+    if (!selectedCaseId) return;
+    setConfirming(true);
+    setActionNotice(null);
+    try {
+      const res = await confirmPayment(selectedCaseId, `PAY-REF-${Date.now().toString().substring(5)}`, 'CONFIRMED');
+      if (res.data.success) {
+        await loadCaseDetails(selectedCaseId);
+        setActionNotice({ type: 'success', text: `✅ SIMULATED PAYMENT CONFIRMED! Revenue recovered & net value saved calculated.` });
+      }
+    } catch (e) {
+      setActionNotice({ type: 'error', text: '❌ Payment confirmation failed.' });
+    } finally {
+      setConfirming(false);
     }
   };
 
@@ -159,10 +177,35 @@ export default function RecoveryTwinLab() {
       {actionNotice && (
         <div className={`p-4 rounded-xl text-xs font-semibold border animate-fade-in ${
           actionNotice.type === 'success' ? 'bg-emerald-500/10 border-emerald-500/30 text-emerald-300' :
+          actionNotice.type === 'awaiting' ? 'bg-cyan-500/10 border-cyan-500/30 text-cyan-300' :
           actionNotice.type === 'graceful_failure' ? 'bg-amber-500/10 border-amber-500/30 text-amber-300' :
           'bg-rose-500/10 border-rose-500/30 text-rose-300'
         }`}>
           {actionNotice.text}
+        </div>
+      )}
+
+      {/* Payment Confirmation Banner when case is AWAITING_PAYMENT_CONFIRMATION */}
+      {currentCase && currentCase.status === 'AWAITING_PAYMENT_CONFIRMATION' && (
+        <div className="surface-level-3 p-5 rounded-2xl border border-cyan-500/40 flex items-center justify-between glow-indigo animate-pulse">
+          <div className="flex items-center space-x-3">
+            <Clock className="w-6 h-6 text-cyan-400" />
+            <div>
+              <h4 className="text-sm font-bold text-white font-heading">PAYMENT INTERVENTION INITIALIZED — AWAITING CONFIRMATION</h4>
+              <p className="text-xs text-cyan-200/80 font-mono mt-0.5">
+                Financial Accuracy Principle: Payment link created. Revenue is NOT counted until payment confirmation is received.
+              </p>
+            </div>
+          </div>
+
+          <button
+            onClick={handleConfirmPayment}
+            disabled={confirming}
+            className="flex items-center space-x-2 px-4 py-2 rounded-xl bg-gradient-to-r from-cyan-600 to-emerald-500 hover:opacity-90 text-white font-bold text-xs shadow-lg shadow-cyan-500/30 transition transform hover:scale-[1.02] shrink-0 font-mono"
+          >
+            <CheckCircle2 className="w-4 h-4" />
+            <span>{confirming ? 'Confirming Payment...' : 'Confirm Simulated Payment'}</span>
+          </button>
         </div>
       )}
 
@@ -200,10 +243,10 @@ export default function RecoveryTwinLab() {
               <button
                 onClick={() => handleExecuteAction(false)}
                 disabled={executing || currentCase.status === 'RECOVERED'}
-                className="flex items-center space-x-2 px-4 py-2 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white font-semibold text-xs shadow-lg shadow-emerald-600/30 transition disabled:opacity-50"
+                className="flex items-center space-x-2 px-4 py-2 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white font-semibold text-xs shadow-lg shadow-emerald-600/30 transition disabled:opacity-50 font-mono"
               >
                 <Play className="w-3.5 h-3.5" />
-                <span>{executing ? 'Executing Action...' : 'EXECUTE SAFELY'}</span>
+                <span>{executing ? 'Executing Action...' : 'EXECUTE INTERVENTION'}</span>
               </button>
             </div>
 
@@ -220,7 +263,7 @@ export default function RecoveryTwinLab() {
 
               <button
                 onClick={() => setShowReceipt(true)}
-                className="flex items-center space-x-2 px-4 py-2 rounded-xl bg-indigo-600 hover:bg-indigo-500 text-white font-semibold text-xs shadow-lg shadow-indigo-600/30 transition"
+                className="flex items-center space-x-2 px-4 py-2 rounded-xl bg-indigo-600 hover:bg-indigo-500 text-white font-semibold text-xs shadow-lg shadow-indigo-600/30 transition font-mono"
               >
                 <Receipt className="w-3.5 h-3.5" />
                 <span>View Decision Receipt</span>
