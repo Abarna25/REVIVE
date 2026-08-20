@@ -3,7 +3,6 @@ const { createPaymentLink, executePaymentRetry } = require('../integrations/razo
 const { evaluateSafetyGates } = require('../engines/safety.engine');
 const { recordOutcome } = require('../engines/learning.engine');
 const { generatePersonalizedMessage } = require('../engines/ai.engine');
-const { v4: uuidv4 } = require('uuid');
 
 async function executeAction(req, res) {
   try {
@@ -12,9 +11,31 @@ async function executeAction(req, res) {
       return res.status(404).json({ success: false, error: { code: 'NOT_FOUND', message: 'Recovery case not found.' } });
     }
 
+    // Phase 5 Check: Case completion state
+    if (caseObj.status === 'RECOVERED' || caseObj.status === 'STOPPED') {
+      return res.status(400).json({
+        success: false,
+        error: {
+          code: 'CASE_ALREADY_CLOSED',
+          message: `Case ${caseObj.id} is already in state ${caseObj.status}. Further action execution disabled.`
+        }
+      });
+    }
+
+    // Phase 5 Check: Simulation required before execution
+    if (!caseObj.strategySimulations || caseObj.strategySimulations.length === 0) {
+      return res.status(400).json({
+        success: false,
+        error: {
+          code: 'SIMULATION_REQUIRED',
+          message: 'Run a Recovery Twin simulation before executing an action.'
+        }
+      });
+    }
+
     const idempotencyKey = req.headers['x-idempotency-key'] || req.body.idempotencyKey || `idemp_${caseObj.id}_${Date.now()}`;
 
-    // Idempotency Check
+    // Phase 8 Check: Idempotency Duplicate Protection
     const existingAction = await db.getActionByIdempotency(idempotencyKey);
     if (existingAction) {
       return res.json({
@@ -33,27 +54,48 @@ async function executeAction(req, res) {
     const policy = await db.getMerchantPolicy(caseObj.merchantId);
     const safetyResult = evaluateSafetyGates(caseObj, winningSim, policy);
 
-    // Safety Gate Check
-    if (safetyResult.isBlocked || (safetyResult.requiresManualApproval && !req.body.isApprovedByMerchant)) {
+    // Phase 6 Check: Safety Gate & Force Stop Enforcement
+    if (safetyResult.isBlocked || safetyResult.forceStopRecovery) {
       await db.addAuditLog({
         merchantId: caseObj.merchantId,
         recoveryCaseId: caseObj.id,
         eventType: 'ACTION_BLOCKED_SAFETY_GATE',
         actorType: 'SAFETY_ENGINE',
-        description: `Action ${strategy} blocked: ${safetyResult.blockReason || 'Manual approval required.'}`
+        description: `Action ${strategy} blocked: ${safetyResult.fatigueGuardReason || safetyResult.blockReason || 'Safety gate constraint violated.'}`
       });
 
       return res.status(403).json({
         success: false,
         error: {
           code: 'SAFETY_GATE_BLOCKED',
-          message: safetyResult.blockReason || 'Action requires explicit merchant approval.',
+          message: safetyResult.fatigueGuardReason || safetyResult.blockReason || 'Action blocked by safety policy.',
           safetyResult
         }
       });
     }
 
-    // Record Action Pending
+    // Phase 7 Check: Server-side Manual Approval Validation
+    const isApproved = caseObj.isApprovedByMerchant || req.body.isApprovedByMerchant;
+    if (safetyResult.requiresManualApproval && !isApproved) {
+      await db.addAuditLog({
+        merchantId: caseObj.merchantId,
+        recoveryCaseId: caseObj.id,
+        eventType: 'MANUAL_APPROVAL_REQUIRED',
+        actorType: 'SAFETY_ENGINE',
+        description: `Action ${strategy} blocked: Amount (₹${amount}) exceeds threshold. Manual merchant approval required.`
+      });
+
+      return res.status(403).json({
+        success: false,
+        error: {
+          code: 'MANUAL_APPROVAL_REQUIRED',
+          message: 'Action requires explicit merchant approval before execution.',
+          safetyResult
+        }
+      });
+    }
+
+    // Create initial Action record in EXECUTING state
     const actionRecord = await db.createAction({
       recoveryCaseId: caseObj.id,
       strategySimulationId: winningSim ? winningSim.id : null,
@@ -66,11 +108,11 @@ async function executeAction(req, res) {
 
     let executionResult;
 
-    // Razorpay or Simulation Execution Call
+    // Razorpay or Simulation Payment Provider Execution Call
     if (strategy === 'PAYMENT_LINK' || strategy === 'ALTERNATE_PAYMENT') {
       let metadata = {};
       try {
-        metadata = JSON.parse(event.rawMetadata || '{}');
+        metadata = JSON.parse(event ? event.rawMetadata : '{}');
       } catch (e) {}
 
       executionResult = await createPaymentLink(
@@ -84,11 +126,13 @@ async function executeAction(req, res) {
       executionResult = await executePaymentRetry(amount, {}, idempotencyKey);
     }
 
-    // Handle Graceful Failure Demo Scenario or API Failure
+    // Phase 4: Persist Action Failure / Graceful Failure
     if (!executionResult.success) {
-      actionRecord.status = 'FAILED';
-      actionRecord.failureReason = executionResult.errorMessage;
-      actionRecord.resultMetadata = JSON.stringify(executionResult);
+      await db.updateAction(actionRecord.id, {
+        status: 'FAILED',
+        failureReason: executionResult.errorMessage,
+        resultMetadata: JSON.stringify(executionResult)
+      });
 
       await db.updateCase(caseObj.id, {
         status: 'FAILED_GRACEFULLY'
@@ -99,27 +143,31 @@ async function executeAction(req, res) {
         recoveryCaseId: caseObj.id,
         eventType: 'ACTION_FAILED_GRACEFULLY',
         actorType: 'PAYMENT_PROVIDER',
-        description: `Action Failed Gracefully → No duplicate charge → Case safely preserved for review. (Error: ${executionResult.errorMessage})`
+        description: `Action Failed Gracefully → Gateway timeout detected → Idempotency lock active (No duplicate charge) → Preserved for review.`
       });
 
       recordOutcome(caseObj.id, event ? event.eventType : 'PAYMENT_FAILED', strategy, winningSim ? winningSim.predictedRecoveryProbability : 0.8, 'FAILED', 0, actionRecord.cost);
+
+      const updatedAction = await db.getActionByIdempotency(idempotencyKey);
 
       return res.json({
         success: true,
         handledGracefully: true,
         message: 'Action Failed Gracefully → No duplicate charge → Case safely preserved for review.',
         data: {
-          action: actionRecord,
+          action: updatedAction,
           executionResult,
           case: await db.getCaseById(caseObj.id)
         }
       });
     }
 
-    // Success Path
-    actionRecord.status = 'SUCCEEDED';
-    actionRecord.completedAt = new Date().toISOString();
-    actionRecord.resultMetadata = JSON.stringify(executionResult);
+    // Phase 4 & Phase 3: Persist Action Success & Update ORIGINAL Event Status
+    await db.updateAction(actionRecord.id, {
+      status: 'SUCCEEDED',
+      completedAt: new Date().toISOString(),
+      resultMetadata: JSON.stringify(executionResult)
+    });
 
     const netSaved = amount - actionRecord.cost;
 
@@ -130,8 +178,9 @@ async function executeAction(req, res) {
       closedAt: new Date().toISOString()
     });
 
+    // Phase 3 Fix: Update ORIGINAL event status (No duplicate events created!)
     if (event) {
-      await db.createEvent({ ...event, status: 'RECOVERED' });
+      await db.updateEvent(event.id, { status: 'RECOVERED' });
     }
 
     await db.addAuditLog({
@@ -144,11 +193,13 @@ async function executeAction(req, res) {
 
     recordOutcome(caseObj.id, event ? event.eventType : 'PAYMENT_FAILED', strategy, winningSim ? winningSim.predictedRecoveryProbability : 0.8, 'SUCCEEDED', amount, actionRecord.cost);
 
+    const updatedAction = await db.getActionByIdempotency(idempotencyKey);
+
     res.json({
       success: true,
       handledGracefully: false,
       data: {
-        action: actionRecord,
+        action: updatedAction,
         executionResult,
         case: await db.getCaseById(caseObj.id)
       }
@@ -164,6 +215,11 @@ async function approveAction(req, res) {
     if (!caseObj) {
       return res.status(404).json({ success: false, error: { code: 'NOT_FOUND', message: 'Recovery case not found.' } });
     }
+
+    // Persist approval on case
+    await db.updateCase(caseObj.id, {
+      isApprovedByMerchant: true
+    });
 
     await db.addAuditLog({
       merchantId: caseObj.merchantId,
@@ -191,6 +247,10 @@ async function stopRecovery(req, res) {
       status: 'STOPPED',
       closedAt: new Date().toISOString()
     });
+
+    if (caseObj.revenueEvent) {
+      await db.updateEvent(caseObj.revenueEvent.id, { status: 'STOPPED' });
+    }
 
     await db.addAuditLog({
       merchantId: caseObj.merchantId,

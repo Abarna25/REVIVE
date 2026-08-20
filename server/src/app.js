@@ -5,6 +5,7 @@
 const express = require('express');
 const cors = require('cors');
 const config = require('./config/env');
+const db = require('./repositories/database');
 const seedDatabase = require('../prisma/seed');
 
 const eventsRoutes = require('./routes/events.routes');
@@ -23,14 +24,15 @@ const allowedOrigins = [
   config.FRONTEND_URL,
   'http://localhost:5173',
   'http://localhost:3000'
-];
+].filter(Boolean);
 
 app.use(cors({
   origin: function (origin, callback) {
-    if (!origin || allowedOrigins.indexOf(origin) !== -1 || process.env.NODE_ENV !== 'production') {
+    if (!origin) return callback(null, true);
+    if (allowedOrigins.includes(origin) || config.NODE_ENV !== 'production') {
       callback(null, true);
     } else {
-      callback(null, true); // Allow flexible deployment origins
+      callback(new Error(`CORS Policy: Origin ${origin} not allowed`));
     }
   },
   credentials: true
@@ -46,7 +48,9 @@ app.get('/health', (req, res) => {
     service: 'REVIVE API',
     timestamp: new Date().toISOString(),
     paymentMode: config.PAYMENT_MODE,
-    aiMode: config.AI_MODE
+    aiMode: config.AI_MODE,
+    demoMode: config.DEMO_MODE,
+    environment: config.NODE_ENV
   });
 });
 
@@ -76,8 +80,18 @@ app.use((err, req, res, next) => {
 
 const PORT = config.PORT;
 
-// Auto-seed synthetic data on launch if needed
-seedDatabase().then(() => {
+// Smart Seeding Startup Handler
+async function initializeServer() {
+  const existingEvents = await db.getAllEvents();
+  if (config.DEMO_MODE && existingEvents.length === 0) {
+    console.log('[REVIVE Init] DEMO_MODE=true & Storage empty. Seeding 100+ synthetic demo events...');
+    await seedDatabase();
+  } else if (!config.DEMO_MODE) {
+    console.log('[REVIVE Init] DEMO_MODE=false. Production environment active. Demo seeding disabled.');
+  } else {
+    console.log(`[REVIVE Init] Found ${existingEvents.length} existing records in storage. Duplicate seeding skipped.`);
+  }
+
   app.listen(PORT, () => {
     console.log(`=======================================================`);
     console.log(`🚀 REVIVE™ Autonomous Revenue Recovery Engine Active!`);
@@ -85,9 +99,12 @@ seedDatabase().then(() => {
     console.log(`🔗 Health Check: http://localhost:${PORT}/health`);
     console.log(`💳 Payment Execution Mode: ${config.PAYMENT_MODE}`);
     console.log(`🧠 AI Engine Mode: ${config.AI_MODE}`);
+    console.log(`🧪 Demo Seeding Mode: ${config.DEMO_MODE}`);
     console.log(`=======================================================`);
   });
-}).catch(err => {
+}
+
+initializeServer().catch(err => {
   console.error('[REVIVE Init Error]:', err);
 });
 

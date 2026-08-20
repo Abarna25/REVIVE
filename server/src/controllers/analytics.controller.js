@@ -1,38 +1,69 @@
 const db = require('../repositories/database');
 const seedDatabase = require('../../prisma/seed');
+const config = require('../config/env');
 
 async function getDashboardMetrics(req, res) {
   try {
-    const cases = await db.getAllCases();
+    let cases = await db.getAllCases();
 
-    if (cases.length === 0) {
+    if (cases.length === 0 && config.DEMO_MODE) {
       await seedDatabase();
+      cases = await db.getAllCases();
     }
 
-    const allCases = await db.getAllCases();
-    let totalEventsAnalysed = allCases.length;
+    let totalEventsAnalysed = cases.length;
     let totalRevenueAtRisk = 0;
     let revenueRecovered = 0;
     let totalInterventionCost = 0;
     let casesStoppedByFatigueGuard = 0;
     let casesEscalated = 0;
     let failedActionsHandledGracefully = 0;
+    let activeCasesCount = 0;
+
+    const pipelineCounts = {
+      DETECT: 0,
+      DIAGNOSE: 0,
+      SIMULATE: 0,
+      DECIDE: 0,
+      SAFEGUARD: 0,
+      EXECUTE: 0,
+      VERIFY: 0,
+      LEARN: 0
+    };
 
     const strategyStats = {};
 
-    allCases.forEach(c => {
+    cases.forEach(c => {
       const amount = c.revenueEvent ? c.revenueEvent.amount : (c.rescueTwin ? c.rescueTwin.revenueAmount : 0);
       totalRevenueAtRisk += amount;
 
       if (c.status === 'RECOVERED') {
         revenueRecovered += (c.recoveredAmount || amount);
+        pipelineCounts.VERIFY++;
+        pipelineCounts.LEARN++;
+      } else if (c.status === 'STOPPED') {
+        casesStoppedByFatigueGuard++;
+        pipelineCounts.SAFEGUARD++;
+      } else if (c.status === 'ESCALATED') {
+        casesEscalated++;
+        pipelineCounts.DECIDE++;
+      } else if (c.status === 'FAILED_GRACEFULLY') {
+        failedActionsHandledGracefully++;
+        pipelineCounts.EXECUTE++;
+      } else if (c.status === 'ACTION_PENDING' || c.status === 'ACTION_EXECUTING') {
+        activeCasesCount++;
+        pipelineCounts.EXECUTE++;
+      } else if (c.status === 'SIMULATION_COMPLETED') {
+        activeCasesCount++;
+        pipelineCounts.SIMULATE++;
+        pipelineCounts.DECIDE++;
+      } else {
+        activeCasesCount++;
+        pipelineCounts.DETECT++;
+        pipelineCounts.DIAGNOSE++;
       }
 
       totalInterventionCost += (c.interventionCost || 0);
-
-      if (c.status === 'STOPPED') casesStoppedByFatigueGuard++;
-      if (c.status === 'ESCALATED') casesEscalated++;
-      if (c.status === 'FAILED_GRACEFULLY') failedActionsHandledGracefully++;
 
       const strategy = c.selectedStrategy || 'RETRY_OPTIMAL_TIME';
       if (!strategyStats[strategy]) {
@@ -61,10 +92,12 @@ async function getDashboardMetrics(req, res) {
           averageRecoveryHours: 4.2,
           casesStoppedByFatigueGuard,
           casesEscalated,
-          failedActionsHandledGracefully
+          failedActionsHandledGracefully,
+          activeCasesCount
         },
+        pipelineCounts,
         strategyStats,
-        recentCases: allCases.slice(0, 10)
+        recentCases: cases.slice(0, 10)
       }
     });
   } catch (err) {
@@ -74,7 +107,13 @@ async function getDashboardMetrics(req, res) {
 
 async function getBatchPerformance(req, res) {
   try {
-    const cases = await db.getAllCases();
+    let cases = await db.getAllCases();
+
+    if (cases.length === 0 && config.DEMO_MODE) {
+      await seedDatabase();
+      cases = await db.getAllCases();
+    }
+
     let totalRevenueAtRisk = 0;
     let revenueRecovered = 0;
     let totalInterventionCost = 0;
@@ -161,7 +200,7 @@ async function resetSeedData(req, res) {
     res.json({
       success: true,
       message: 'Database re-seeded with 100+ synthetic revenue events.',
-      count: db.memoryStore.revenueEvents.length
+      count: (await db.getAllEvents()).length
     });
   } catch (err) {
     res.status(500).json({ success: false, error: { code: 'SEED_ERROR', message: err.message } });

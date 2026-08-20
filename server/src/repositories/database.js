@@ -144,6 +144,24 @@ async function createEvent(data) {
   return event;
 }
 
+async function updateEvent(id, data) {
+  const updates = { ...data, updatedAt: new Date().toISOString() };
+
+  if (isPrismaAvailable && prisma) {
+    try {
+      return await prisma.revenueEvent.update({ where: { id }, data: updates });
+    } catch (e) {
+      console.warn('[DB Repository] Prisma updateEvent fallback');
+    }
+  }
+
+  const event = memoryStore.revenueEvents.find(e => e.id === id);
+  if (event) {
+    Object.assign(event, updates);
+  }
+  return event;
+}
+
 // --- Recovery Cases & Twins ---
 async function getAllCases() {
   if (isPrismaAvailable && prisma) {
@@ -368,6 +386,24 @@ async function createAction(actionData) {
   return action;
 }
 
+async function updateAction(id, data) {
+  const updates = { ...data };
+
+  if (isPrismaAvailable && prisma) {
+    try {
+      return await prisma.recoveryAction.update({ where: { id }, data: updates });
+    } catch (e) {
+      console.warn('[DB Repository] Prisma updateAction fallback');
+    }
+  }
+
+  const action = memoryStore.recoveryActions.find(a => a.id === id);
+  if (action) {
+    Object.assign(action, updates);
+  }
+  return action;
+}
+
 async function getActionByIdempotency(idempotencyKey) {
   if (isPrismaAvailable && prisma) {
     try {
@@ -461,6 +497,7 @@ module.exports = {
   getAllEvents,
   getEventById,
   createEvent,
+  updateEvent,
   getAllCases,
   getCaseById,
   createCase,
@@ -468,6 +505,7 @@ module.exports = {
   saveRescueTwin,
   saveSimulations,
   createAction,
+  updateAction,
   getActionByIdempotency,
   saveSafetyGates,
   addAuditLog,

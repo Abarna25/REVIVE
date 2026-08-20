@@ -12,5 +12,5 @@ module.exports = {
   PAYMENT_MODE: process.env.PAYMENT_MODE || 'simulation',
   AI_API_KEY: process.env.AI_API_KEY || '',
   AI_MODE: process.env.AI_MODE || 'enabled',
-  DEMO_MODE: process.env.DEMO_MODE === 'true' || true,
+  DEMO_MODE: process.env.DEMO_MODE === undefined ? true : (process.env.DEMO_MODE === 'true' || process.env.DEMO_MODE === '1'),
 };
