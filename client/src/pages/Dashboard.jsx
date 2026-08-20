@@ -34,7 +34,7 @@ export default function Dashboard() {
 
   if (loading || !metrics) {
     return (
-      <div className="p-12 text-center text-slate-500 dark:text-gray-400 space-y-3 surface-level-2 rounded-2xl">
+      <div className="p-12 text-center text-slate-500 dark:text-gray-400 space-y-3 bg-white dark:bg-[#111827] rounded-2xl border border-slate-200 dark:border-gray-800">
         <RefreshCw className="w-8 h-8 text-indigo-600 dark:text-indigo-400 animate-spin mx-auto" />
         <p className="text-xs font-mono">Initializing REVIVE™ Command Center Operational Telemetry...</p>
       </div>
@@ -81,7 +81,6 @@ export default function Dashboard() {
           subtitle={`${summary.totalEventsAnalysed} Events Monitored`}
           icon={AlertTriangle}
           color="amber"
-          level={2}
         />
         <StatCard
           title="RECOVERY RATE"
@@ -90,7 +89,6 @@ export default function Dashboard() {
           icon={TrendingUp}
           color="emerald"
           trend={`${summary.recoveryRate}%`}
-          level={3}
         />
         <StatCard
           title="NET VALUE SAVED"
@@ -98,7 +96,6 @@ export default function Dashboard() {
           subtitle={`Recovered − Cost (₹${summary.totalInterventionCost})`}
           icon={DollarSign}
           color="cyan"
-          level={3}
         />
         <StatCard
           title="ACTIVE RECOVERY CASES"
@@ -106,7 +103,6 @@ export default function Dashboard() {
           subtitle={`${summary.casesStoppedByFatigueGuard} Stopped by Fatigue Guard`}
           icon={ShieldCheck}
           color="indigo"
-          level={2}
         />
       </div>
 
@@ -119,7 +115,7 @@ export default function Dashboard() {
         <SystemPulseCard summary={summary} />
 
         {/* Main Revenue Velocity Chart */}
-        <div className="lg:col-span-2 surface-level-2 p-6 rounded-2xl border border-slate-200 dark:border-gray-800 space-y-4">
+        <div className="lg:col-span-2 bg-white dark:bg-[#111827] p-6 rounded-2xl border border-slate-200 dark:border-gray-800 space-y-4 shadow-sm dark:shadow-none">
           <div className="flex items-center justify-between">
             <div>
               <h3 className="text-base font-bold text-slate-900 dark:text-white font-heading">REVENUE RECOVERY VELOCITY</h3>
@@ -171,7 +167,7 @@ export default function Dashboard() {
       </div>
 
       {/* Live Revenue Threat Feed */}
-      <div className="surface-level-2 rounded-2xl border border-slate-200 dark:border-gray-800 p-6 space-y-4">
+      <div className="bg-white dark:bg-[#111827] rounded-2xl border border-slate-200 dark:border-gray-800 p-6 space-y-4 shadow-sm dark:shadow-none">
         <div className="flex items-center justify-between">
           <div>
             <h3 className="text-base font-bold text-slate-900 dark:text-white font-heading">LIVE REVENUE THREAT FEED</h3>
@@ -196,7 +192,7 @@ export default function Dashboard() {
                 key={rc.id}
                 className={`p-4 rounded-xl border space-y-3 transition duration-200 ${
                   isCritical
-                    ? 'surface-level-3 border-rose-500/40 glow-indigo'
+                    ? 'bg-rose-50/50 dark:bg-rose-950/20 border-rose-300 dark:border-rose-500/40'
                     : 'bg-slate-50 dark:bg-gray-900/60 border-slate-200 dark:border-gray-800 hover:border-indigo-500/40'
                 }`}
               >
