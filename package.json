@@ -1,0 +1,27 @@
+{
+  "name": "revive-revenue-recovery",
+  "version": "1.0.0",
+  "description": "REVIVE™ — An Explainable Autonomous Revenue Recovery Engine",
+  "private": true,
+  "scripts": {
+    "install:all": "npm install && npm install --prefix server && npm install --prefix client",
+    "dev:server": "npm --prefix server run dev",
+    "dev:client": "npm --prefix client run dev",
+    "start:server": "npm --prefix server start",
+    "build:client": "npm --prefix client run build",
+    "prisma:generate": "npm --prefix server run prisma:generate",
+    "prisma:migrate": "npm --prefix server run prisma:migrate",
+    "prisma:seed": "npm --prefix server run prisma:seed"
+  },
+  "keywords": [
+    "revenue-recovery",
+    "ai",
+    "fintech",
+    "razorpay",
+    "prisma",
+    "express",
+    "react"
+  ],
+  "author": "REVIVE Team",
+  "license": "MIT"
+}

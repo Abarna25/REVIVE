@@ -1,0 +1,245 @@
+// Prisma Schema for REVIVE™ Revenue Recovery Engine
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider  = "postgresql"
+  url       = env("DATABASE_URL")
+  directUrl = env("DIRECT_URL")
+}
+
+model Merchant {
+  id             String          @id @default(uuid())
+  name           String
+  email          String          @unique
+  createdAt      DateTime        @default(now())
+  updatedAt      DateTime        @updatedAt
+
+  revenueEvents  RevenueEvent[]
+  recoveryCases  RecoveryCase[]
+  policies       RecoveryPolicy[]
+  auditLogs      AuditLog[]
+}
+
+enum RevenueEventType {
+  PAYMENT_FAILED
+  CHECKOUT_ABANDONED
+  INVOICE_OVERDUE
+  SUBSCRIPTION_FAILED
+}
+
+enum RevenueEventStatus {
+  UNRESOLVED
+  IN_RECOVERY
+  RECOVERED
+  STOPPED
+  ESCALATED
+}
+
+model RevenueEvent {
+  id                   String             @id @default(uuid())
+  merchantId           String
+  externalReferenceId String?
+  eventType            RevenueEventType
+  amount               Float
+  currency             String             @default("INR")
+  status               RevenueEventStatus @default(UNRESOLVED)
+  occurredAt           DateTime           @default(now())
+  rawMetadata          String?            // JSON stringified payload
+  createdAt            DateTime           @default(now())
+  updatedAt            DateTime           @updatedAt
+
+  merchant             Merchant           @relation(fields: [merchantId], references: [id], onDelete: Cascade)
+  recoveryCases        RecoveryCase[]
+
+  @@index([merchantId])
+  @@index([eventType])
+  @@index([status])
+  @@index([occurredAt])
+}
+
+enum CaseStatus {
+  DETECTED
+  TWIN_CREATED
+  SIMULATION_COMPLETED
+  ACTION_PENDING
+  ACTION_EXECUTING
+  RECOVERED
+  STOPPED
+  FAILED_GRACEFULLY
+  ESCALATED
+}
+
+enum StrategyType {
+  RETRY_NOW
+  RETRY_OPTIMAL_TIME
+  PAYMENT_LINK
+  ALTERNATE_PAYMENT
+  PERSONALIZED_REMINDER
+  MANUAL_ESCALATION
+  STOP_INTERVENTION
+}
+
+model RecoveryCase {
+  id                           String              @id @default(uuid())
+  revenueEventId               String
+  merchantId                   String
+  status                       CaseStatus          @default(DETECTED)
+  rootCause                    String?
+  predictedRecoveryProbability Float?
+  selectedStrategy             StrategyType?
+  expectedNetRecoveryScore     Float?
+  recoveredAmount              Float               @default(0)
+  interventionCost             Float               @default(0)
+  netRevenueSaved              Float               @default(0)
+  createdAt                    DateTime            @default(now())
+  updatedAt                    DateTime            @updatedAt
+  closedAt                     DateTime?
+
+  revenueEvent                 RevenueEvent        @relation(fields: [revenueEventId], references: [id], onDelete: Cascade)
+  merchant                     Merchant            @relation(fields: [merchantId], references: [id], onDelete: Cascade)
+  rescueTwin                   RevenueRescueTwin?
+  strategySimulations          StrategySimulation[]
+  recoveryActions              RecoveryAction[]
+  safetyGates                  SafetyGate[]
+  auditLogs                    AuditLog[]
+
+  @@index([merchantId])
+  @@index([status])
+}
+
+model RevenueRescueTwin {
+  id                      String       @id @default(uuid())
+  recoveryCaseId          String       @unique
+  revenueAmount           Float
+  customerHistoryScore    Float        @default(0.8)
+  engagementScore         Float        @default(0.7)
+  recoveryFatigueScore    Float        @default(0.1)
+  previousAttempts        Int          @default(0)
+  preferredRecoveryWindow String?
+  contextSnapshot         String?      // JSON stringified customer context
+  createdAt               DateTime     @default(now())
+  updatedAt               DateTime     @updatedAt
+
+  recoveryCase            RecoveryCase @relation(fields: [recoveryCaseId], references: [id], onDelete: Cascade)
+}
+
+model StrategySimulation {
+  id                           String        @id @default(uuid())
+  recoveryCaseId               String
+  strategyType                 StrategyType
+  predictedRecoveryProbability Float
+  estimatedRecoveryAmount      Float
+  interventionCost             Float
+  fatiguePenalty               Float
+  complianceRisk               Float         @default(0.0)
+  expectedNetRecoveryScore     Float
+  isEligible                   Boolean       @default(true)
+  ineligibilityReason          String?
+  rank                         Int?
+  createdAt                    DateTime      @default(now())
+
+  recoveryCase                 RecoveryCase  @relation(fields: [recoveryCaseId], references: [id], onDelete: Cascade)
+  recoveryActions              RecoveryAction[]
+
+  @@index([recoveryCaseId])
+}
+
+enum ActionStatus {
+  PENDING
+  APPROVED
+  EXECUTING
+  SUCCEEDED
+  FAILED
+  BLOCKED
+  STOPPED
+}
+
+model RecoveryAction {
+  id                   String             @id @default(uuid())
+  recoveryCaseId       String
+  strategySimulationId String?
+  actionType           StrategyType
+  status               ActionStatus       @default(PENDING)
+  executedAt           DateTime?
+  completedAt          DateTime?
+  cost                 Float              @default(0)
+  resultMetadata       String?            // JSON stringified result
+  failureReason        String?
+  idempotencyKey       String             @unique
+  createdAt            DateTime           @default(now())
+
+  recoveryCase         RecoveryCase       @relation(fields: [recoveryCaseId], references: [id], onDelete: Cascade)
+  strategySimulation   StrategySimulation? @relation(fields: [strategySimulationId], references: [id], onDelete: SetNull)
+
+  @@index([recoveryCaseId])
+}
+
+enum GateType {
+  MAX_RETRY_LIMIT
+  COOLDOWN_PERIOD
+  CONTACT_FREQUENCY
+  MIN_RECOVERY_PROBABILITY
+  MIN_ENRS
+  MAX_AUTONOMOUS_AMOUNT
+  MANUAL_APPROVAL_REQUIRED
+}
+
+model SafetyGate {
+  id             String       @id @default(uuid())
+  recoveryCaseId String
+  gateType       GateType
+  passed         Boolean
+  reason         String
+  thresholdValue Float?
+  actualValue    Float?
+  createdAt      DateTime     @default(now())
+
+  recoveryCase   RecoveryCase @relation(fields: [recoveryCaseId], references: [id], onDelete: Cascade)
+
+  @@index([recoveryCaseId])
+}
+
+model RecoveryPolicy {
+  id                          String   @id @default(uuid())
+  merchantId                  String
+  maxRetryAttempts            Int      @default(3)
+  maxReminders                Int      @default(2)
+  cooldownMinutes             Int      @default(120)
+  minRecoveryProbability      Float    @default(0.20)
+  minExpectedNetRecoveryScore Float    @default(100)
+  maxAutonomousRecoveryAmount Float    @default(25000)
+  maxInterventionCost         Float    @default(500)
+  manualApprovalThreshold     Float    @default(10000)
+  createdAt                   DateTime @default(now())
+  updatedAt                   DateTime @updatedAt
+
+  merchant                    Merchant @relation(fields: [merchantId], references: [id], onDelete: Cascade)
+}
+
+enum ActorType {
+  SYSTEM
+  AI_ENGINE
+  SAFETY_ENGINE
+  USER
+  PAYMENT_PROVIDER
+}
+
+model AuditLog {
+  id             String       @id @default(uuid())
+  merchantId     String
+  recoveryCaseId String?
+  eventType      String
+  actorType      ActorType
+  description    String
+  metadata       String?      // JSON stringified payload
+  createdAt      DateTime     @default(now())
+
+  merchant       Merchant     @relation(fields: [merchantId], references: [id], onDelete: Cascade)
+  recoveryCase   RecoveryCase? @relation(fields: [recoveryCaseId], references: [id], onDelete: Cascade)
+
+  @@index([merchantId])
+  @@index([recoveryCaseId])
+}
